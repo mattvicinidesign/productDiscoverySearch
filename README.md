@@ -1,8 +1,18 @@
 # Discover — Product Discovery Search
 
-A production-quality product discovery experience built as a take-home assignment. The focus is on **search UX and product decisions**, not ecommerce checkout flows.
+A product discovery experience for browsing and searching ~4,000 home goods. This is a search UX take-home — not an ecommerce store. There is no cart, checkout, or product detail page. The goal is to help someone find the right product quickly and understand *why* results appear.
 
-Browse and search ~4,000 home goods products entirely client-side from a static JSON dataset.
+## What I Built
+
+**Homepage** — promotional carousel, recommended/new-arrival product grids, and a dense “more to explore” section to support browsing without typing.
+
+**Header & search** — Amazon-style layout with a department dropdown beside the search bar, curated collection shortcuts (Best Sellers, New Arrivals, Trending, etc.), and a search dropdown with recently viewed thumbnails, recent searches (with per-item remove), and popular query chips.
+
+**Search & results** — instant fuzzy search across title, category, tags, brand, and description. Results show match highlighting and a “Why it matched” breakdown. Filters (category, brand, tags/materials, stock, price) compose with search in real time. Sort options include best match, price, alphabetical, and newest.
+
+**Persistence** — recent searches and recently viewed products stored in `localStorage`.
+
+**Stack** — Next.js 15, TypeScript, Tailwind CSS v4, shadcn/ui, Fuse.js. No backend; data loads from `data/items.json`.
 
 ## Run locally
 
@@ -17,107 +27,80 @@ If the page is blank, the dev cache likely corrupted — run `npm run dev:clean`
 
 ## Deploy to Vercel
 
-Import the GitHub repo and deploy with default settings (Framework: **Next.js**). No root directory override needed — the app lives at the repository root.
+Import the repo and deploy with default settings (Framework: **Next.js**). The app lives at the repository root.
 
-## Tech Stack
+---
 
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 |
-| Components | shadcn/ui (Radix primitives) |
-| Search | Fuse.js |
-| Animation | Framer Motion (subtle) |
-| Icons | Lucide React |
+## Decisions & Why
 
-No backend. All data loads from `data/items.json`.
+### Client-side Fuse.js instead of a search API
 
-## Dataset
+With ~4,000 items, a client-side index is fast enough (<50ms) and keeps the project self-contained — no server, no API keys, no deployment complexity. Fuse.js gives fuzzy matching, field weighting, and match metadata out of the box. That metadata powers both substring highlighting and the “Why it matched” labels, which would be harder to replicate with a simple `includes()` filter.
 
-After inspecting the source data, these fields drive the experience:
+Field weights reflect discovery intent: title matters most, then category and tags, then brand, then description.
 
-| Field | Usage |
-|-------|-------|
-| `title` | Primary search target (highest weight) |
-| `category` | Search + filter (10 categories) |
-| `tags` | Search + filter — acts as materials/attributes (no dedicated `material` field) |
-| `brand` | Search + filter (16 brands) |
-| `description` | Search + match highlighting |
-| `price` | Filter + sort (164 items missing price — handled gracefully) |
-| `inStock` | Availability filter |
-| `releasedAt` | "Newest" sort |
-| `rating`, `reviews` | Card metadata |
-| `image` | Lazy-loaded product images (183 missing — placeholder shown) |
+### Debounced + deferred search
 
-Missing values are normalized at load time rather than assumed away.
+Running Fuse across 4,000 products and re-rendering the full results grid on every keystroke made typing feel laggy. Search is debounced (~120ms) and deferred so the input stays responsive while results update shortly after. Skeleton cards show during the brief pending state instead of flashing unrelated products.
 
-## Search Architecture
+### Tags as “materials”
 
-```
-User types → Fuse.js fuzzy index → weighted multi-field matches
-                ↓
-         Filter pipeline (category, brand, tags, stock, price)
-                ↓
-              Sort (best match / price / alpha / newest)
-                ↓
-         Results with match explainability + highlighting
-```
+The dataset has no `material` field. Tags contain values like `linen`, `walnut`, `oak`, and `handwoven`, so the filter sidebar surfaces the most common material-like tags rather than inventing a field that doesn’t exist.
 
-### Fuse.js Configuration
+### Two navigation layers: departments vs. collections
 
-Fuse.js was chosen because:
+The **department dropdown** next to search scopes queries to a category (Bath, Furniture, Kitchen, etc.) — useful when the user knows *where* to look.
 
-- **Client-side** — no server required for 4k items; search feels instant
-- **Fuzzy matching** — typo tolerance and partial word matching out of the box
-- **Match metadata** — `includeMatches` powers "Why it matched" and text highlighting
-- **Weighted fields** — reflects product discovery intent (title > category > tags > brand > description)
+The **subheader collections** (Best Sellers, Under $100, Walnut, etc.) are curated discovery paths — useful when the user is browsing by intent, not taxonomy. These use scoring rules over the dataset (e.g. best sellers by rating × review volume, sustainable by natural-material keywords).
 
-```ts
-threshold: 0.38    // balanced typo tolerance
-ignoreLocation: true  // match anywhere in field
-keys: title (0.35), category (0.2), tags (0.2), brand (0.15), description (0.1)
-```
+Keeping both mirrors how real retailers separate “shop by room” from “shop by story.”
 
-### Performance
+### Search explainability as a differentiator
 
-- Fuse index built once and memoized
-- Debounced + deferred search so typing stays responsive
-- 4,000 items search in <50ms on typical hardware
+Most product search UIs are a black box. Surfacing which field matched (and highlighting the substring) helps users refine queries when results feel wrong — especially important for fuzzy search where typos and partial matches are intentional.
 
-## UX Decisions
+### Graceful handling of missing data
 
-### Search-first layout
-Amazon-style header with department dropdown, search suggestions (recent searches + recently viewed), and curated collection filters.
+~164 products have no price, ~183 have no image, and some image URLs point to a dead host (`cdn.catalog.example`). Prices render as “Price unavailable,” missing images show a placeholder, and broken URLs fall back to picsum placeholders — the UI never assumes complete data.
 
-### Keyboard shortcuts
-- `/` — focus search from anywhere
-- `Esc` — clear search and blur
+### Homepage before search
 
-### Match explainability
-Every search result shows **why it matched** (Product Name, Category, Tags, etc.) using Fuse.js match metadata.
+The assignment is about discovery, not just search. The homepage gives entry points for users who aren’t sure what to type: editorial ads, social-proof grids, and a dense explore section. Search and filters take over once the user has intent.
 
-### Highlighting
-Matching substrings in titles and descriptions are subtly highlighted.
+### No product detail page
 
-### Auto-generated filters
-Filters are derived from the dataset at runtime — no "Apply" button.
+Scope is findability, not conversion. Clicking a product fills the search bar and scopes to its department so the user stays in the discovery flow rather than navigating away to a PDP.
 
-### Responsive
-- **Desktop** — sticky filter sidebar, 4-column grid
-- **Tablet** — 2–3 columns
-- **Mobile** — filter drawer
+---
+
+## Tradeoffs
+
+| Decision | Why |
+|----------|-----|
+| Client-side search | Right-sized for 4k items; zero infra |
+| No URL state for filters/query | Faster to ship; would add shareable links next |
+| Curated collections over ML | Deterministic rules are debuggable and sufficient for a take-home |
+| Light mode only | Keeps visual system simple and consistent |
+| Memoized cards, no grid animations | Animating hundreds of cards on every keystroke killed performance |
+
+## What I’d Build Next
+
+1. URL state for shareable search + filter links
+2. Faceted counts next to filter options (“Furniture (124)”)
+3. Query autocomplete from title/category/tag prefixes
+4. Search analytics — zero-result queries, popular terms
+5. Product detail drawer for quick preview without leaving results
 
 ## Project Structure
 
 ```
 app/                  # Next.js App Router
-components/           # UI components
+components/           # UI (Header, SearchBar, ProductGrid, Homepage, etc.)
   ui/                 # shadcn primitives
-hooks/                # useDiscovery, recent searches
-lib/                  # search, filters, products, collections
+hooks/                # useDiscovery, useRecentlyViewed, useDebouncedValue
+lib/                  # search, filters, products, collections, homepage
 types/                # Product, FilterState, SearchResult
-data/                 # items.json
+data/                 # items.json (~4,000 products)
 public/ads/           # Homepage carousel creatives
 ```
 
