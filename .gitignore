@@ -1,15 +1,42 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
 *.pem
 
-# Next.js app
-product-discovery/node_modules/
-product-discovery/.next/
-product-discovery/out/
-product-discovery/build/
-product-discovery/.env*
-product-discovery/.vercel
-product-discovery/*.tsbuildinfo
-product-discovery/npm-debug.log*
-product-discovery/yarn-debug.log*
-product-discovery/yarn-error.log*
-product-discovery/.pnpm-debug.log*
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# leftover subfolder artifacts
+product-discovery/
