@@ -1,0 +1,15 @@
+.DS_Store
+*.pem
+
+# Next.js app
+product-discovery/node_modules/
+product-discovery/.next/
+product-discovery/out/
+product-discovery/build/
+product-discovery/.env*
+product-discovery/.vercel
+product-discovery/*.tsbuildinfo
+product-discovery/npm-debug.log*
+product-discovery/yarn-debug.log*
+product-discovery/yarn-error.log*
+product-discovery/.pnpm-debug.log*
